@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Крупные символы для вывода результатов
+# Крупные символы для вывода результатов на столе
 DICE_EMOJI = {1: "➀", 2: "➁", 3: "➂", 4: "➃", 5: "➄", 6: "➅"}
 
 # --- РАБОТА С БАЗОЙ ДАННЫХ SQLite ---
@@ -31,7 +31,7 @@ def init_db():
   conn.close()
 
 
-def save_score(user_id: int, name: int, score: int):
+def save_score(user_id: int, name: str, score: int):
   conn = sqlite3.connect("database.db")
   cursor = conn.cursor()
   cursor.execute("SELECT score FROM records WHERE user_id = ?", (user_id,))
@@ -172,11 +172,10 @@ async def back_home(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "start_game")
 async def start_game(callback: types.CallbackQuery):
-  # Красивая анимация броска кубиков от телеграма перед началом!
-  msg = await callback.message.answer("🎲 Бросаем кости...")
+  # Отправляем анимацию броска, ждем пока она проиграет, и сразу удаляем сообщение
   dice_msg = await callback.message.answer_dice(emoji="🎲")
-  await asyncio.sleep(3)  # Ждем пока анимация проиграет в чате
-  await msg.delete()
+  await asyncio.sleep(3)
+  await dice_msg.delete()
 
   user_games[callback.from_user.id] = {
       "dice": [random.randint(1, 6) for _ in range(5)],
@@ -193,9 +192,9 @@ async def show_desk(message: types.Message, user_id: int, edit: bool = True):
   dice_display = []
   for i, d in enumerate(game["dice"]):
     if game["locked"][i]:
-      dice_display.append(f"🔒{DICE_EMOJI[d]}")
+      dice_display.append(f"🔒{DICE_EMOJI.get(d, str(d))}")
     else:
-      dice_display.append(f"🎲 {DICE_EMOJI[d]}")
+      dice_display.append(f"🎲 {DICE_EMOJI.get(d, str(d))}")
 
   dice_str = "   ".join(dice_display)
 
@@ -254,11 +253,13 @@ async def process_reroll(callback: types.CallbackQuery):
 
   if game["rolls_left"] > 0:
     game["rolls_left"] -= 1
-    # Красивая анимация перед перебросом
-    dice_anim = await callback.message.answer_dice(emoji="🎲")
-    await asyncio.sleep(2.5)
-    await dice_anim.delete()
 
+    # Запускаем анимацию переброса, ждем и удаляем сообщение с кубиком
+    dice_msg = await callback.message.answer_dice(emoji="🎲")
+    await asyncio.sleep(3)
+    await dice_msg.delete()
+
+    # Меняем значения только для незафиксированных кубиков
     for i in range(5):
       if not game["locked"][i]:
         game["dice"][i] = random.randint(1, 6)
@@ -268,8 +269,8 @@ async def process_reroll(callback: types.CallbackQuery):
 
 
 def evaluate_combination(dice: list):
-  dice.sort()
-  counts = {x: dice.count(x) for x in set(dice)}
+  d_sorted = sorted(dice)
+  counts = {x: d_sorted.count(x) for x in set(d_sorted)}
   values = sorted(counts.values(), reverse=True)
 
   if values == [5]:
@@ -278,7 +279,9 @@ def evaluate_combination(dice: list):
     return "⭐ Каре (4 одинаковых)", 40
   elif values == [3, 2]:
     return "🏠 Фулл Хаус (3 + 2)", 30
-  elif set(dice) in [{1, 2, 3, 4, 5}, {2, 3, 4, 5, 6}] or len(set(dice)) == 5:
+  elif set(d_sorted) in [{1, 2, 3, 4, 5}, {2, 3, 4, 5, 6}] or len(
+      set(d_sorted)
+  ) == 5:
     return "📊 Стрит", 25
   elif values == [3, 1, 1]:
     return "🎲 Тройка", 20
@@ -298,7 +301,7 @@ async def process_finish(callback: types.CallbackQuery):
   dice = game["dice"]
 
   combo_name, score = evaluate_combination(dice)
-  dice_display = " ".join([DICE_EMOJI[d] for d in dice])
+  dice_display = " ".join([DICE_EMOJI.get(d, str(d)) for d in dice])
 
   # Сохраняем результат в базу данных SQLite
   save_score(user_id, user_name, score)
@@ -334,7 +337,6 @@ async def process_finish(callback: types.CallbackQuery):
 
 
 async def main():
-  # Инициализируем базу данных при запуске
   init_db()
   await dp.start_polling(bot)
 
