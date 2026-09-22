@@ -12,21 +12,29 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Эмодзи для кубиков
-DICE_EMOJI = {1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
+# Крупные и яркие символы для кубиков в кружках
+DICE_EMOJI = {1: "➀", 2: "➁", 3: "➂", 4: "➃", 5: "➄", 6: "➅"}
 
-# Хранилище игр пользователей (пока в памяти)
+# Хранилище игр пользователей
 user_games = {}
 
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
   kb = InlineKeyboardMarkup(
-      inline_keyboard=[[
-          InlineKeyboardButton(
-              text="🎲 Начать игру в Покер на костях", callback_data="start_game"
-          )
-      ]]
+      inline_keyboard=[
+          [
+              InlineKeyboardButton(
+                  text="🎲 Начать игру в Покер на костях",
+                  callback_data="start_game",
+              )
+          ],
+          [
+              InlineKeyboardButton(
+                  text="📖 Правила игры", callback_data="show_rules"
+              )
+          ],
+      ]
   )
   await message.answer(
       "Привет! Это игра **Покер на костях**.\nЦель — собрать лучшие комбинации"
@@ -34,6 +42,63 @@ async def cmd_start(message: types.Message):
       reply_markup=kb,
       parse_mode="Markdown",
   )
+
+
+@dp.callback_query(F.data == "show_rules")
+async def show_rules(callback: types.CallbackQuery):
+  rules_text = (
+      "📖 **Правила игры «Покер на костях»**:\n\n"
+      "1. **Цель игры:** выбросить за 3 попытки лучшую комбинацию из 5"
+      " кубиков.\n"
+      "2. **Броски:**\n"
+      "   • Сделай первый бросок.\n"
+      "   • Нажми на кнопки кубиков (1–5), чтобы зафиксировать (🔒) те, которые"
+      " тебе нравятся.\n"
+      "   • Нажми «Перебросить незафиксированные», чтобы перекинуть"
+      " остальные (у тебя есть 2 переброса).\n"
+      "3. **Комбинации:**\n"
+      "   • **Пара** — две одинаковые кости.\n"
+      "   • **Тройка** — три одинаковые кости.\n"
+      "   • **Каре** — четыре одинаковые кости.\n"
+      "   • **Покер** — все 5 кубиков одинаковые! (Самая ценная комбинация).\n"
+      "   • **Стрит** — последовательность (например, 1-2-3-4-5).\n"
+  )
+
+  kb = InlineKeyboardMarkup(
+      inline_keyboard=[[
+          InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="back_home")
+      ]]
+  )
+  await callback.message.edit_text(
+      rules_text, reply_markup=kb, parse_mode="Markdown"
+  )
+  await callback.answer()
+
+
+@dp.callback_query(F.data == "back_home")
+async def back_home(callback: types.CallbackQuery):
+  kb = InlineKeyboardMarkup(
+      inline_keyboard=[
+          [
+              InlineKeyboardButton(
+                  text="🎲 Начать игру в Покер на костях",
+                  callback_data="start_game",
+              )
+          ],
+          [
+              InlineKeyboardButton(
+                  text="📖 Правила игры", callback_data="show_rules"
+              )
+          ],
+      ]
+  )
+  await callback.message.edit_text(
+      "Привет! Это игра **Покер на костях**.\nЦель — собрать лучшие комбинации"
+      " и набрать больше всего очков.",
+      reply_markup=kb,
+      parse_mode="Markdown",
+  )
+  await callback.answer()
 
 
 @dp.callback_query(F.data == "start_game")
@@ -49,26 +114,31 @@ async def start_game(callback: types.CallbackQuery):
 
 async def show_desk(message: types.Message, user_id: int, edit: bool = True):
   game = user_games[user_id]
-  dice_str = " ".join(
-      [
-          f"[{DICE_EMOJI[d]}]" if not game["locked"][i] else f"🔒{DICE_EMOJI[d]}"
-          for i, d in enumerate(game["dice"])
-      ]
-  )
+
+  dice_display = []
+  for i, d in enumerate(game["dice"]):
+    if game["locked"][i]:
+      dice_display.append(f"🔒{DICE_EMOJI[d]}")
+    else:
+      dice_display.append(f"🎲 {DICE_EMOJI[d]}")
+
+  dice_str = "   ".join(dice_display)
 
   text = (
-      f"🎲 **Твои кубики:**\n{dice_str}\n\nОсталось перебросов:"
-      f" {game['rolls_left']}\nНажми на кнопку кубика под сообщением, чтобы"
-      " зафиксировать его (или снять фиксацию), затем сделай переброс."
+      f"🎯 **Твой бросок:**\n\n"
+      f"   {dice_str}\n\n"
+      f"🔄 Осталось перебросов: **{game['rolls_left']}**\n\n"
+      "*Инструкция:* нажми на кнопки ниже (1–5), чтобы зафиксировать нужные"
+      " кости (появится 🔒), а затем нажми «Перебросить выбранные»."
   )
 
   buttons = []
   row1 = []
   for i in range(5):
-    status = "✅" if game["locked"][i] else "❌"
     row1.append(
         InlineKeyboardButton(
-            text=f"{i+1} {status}", callback_data=f"lock_{i}"
+            text=f"{i+1} {'✅' if game['locked'][i] else '❌'}",
+            callback_data=f"lock_{i}",
         )
     )
   buttons.append(row1)
@@ -76,7 +146,7 @@ async def show_desk(message: types.Message, user_id: int, edit: bool = True):
   if game["rolls_left"] > 0:
     buttons.append([
         InlineKeyboardButton(
-            text="🔄 Перебросить выбранные", callback_data="reroll"
+            text="🔄 Перебросить незафиксированные", callback_data="reroll"
         )
     ])
 
@@ -120,8 +190,8 @@ async def process_reroll(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "finish")
 async def process_finish(callback: types.CallbackQuery):
   await callback.message.edit_text(
-      "✅ Броски завершены! (Логику подсчета очков и таблицы мы добавим в"
-      " следующем шаге).",
+      "✅ Броски завершены! Скоро добавим сюда полноценную таблицу"
+      " комбинаций (Пара, Стрит, Покер и т.д.).",
       parse_mode="Markdown",
   )
   await callback.answer()
