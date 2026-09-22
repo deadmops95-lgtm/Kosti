@@ -106,10 +106,12 @@ async def show_main_menu(message: types.Message, edit: bool = True):
 async def show_rules(callback: types.CallbackQuery):
   rules_text = (
       "📖 **Правила игры «Покер на костях»**:\n\n"
-      "1. **Цель:** выбросить за попытки лучшую комбинацию из 5 кубиков.\n"
+      "1. **Цель:** выбросить за 3 попытки лучшую комбинацию из 5 кубиков.\n"
       "2. **Броски:**\n"
-      "   • Бросай кубики и фиксируй (🔒) те, которые нравятся.\n"
-      "   • Перебрасывай остальные.\n"
+      "   • Сделай первый бросок.\n"
+      "   • Нажми на кубики (1–5), чтобы зафиксировать (🔒) нужные кости.\n"
+      "   • Нажми «Перебросить незафиксированные», чтобы обновить остальные"
+      " (у тебя 2 переброса).\n"
       "3. **Основные комбинации и очки:**\n"
       "   • 🔥 **Покер** (5 одинаковых) — 50 очков\n"
       "   • ⭐ **Каре** (4 одинаковых) — 40 очков\n"
@@ -172,11 +174,7 @@ async def back_home(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "start_game")
 async def start_game(callback: types.CallbackQuery):
-  # Отправляем анимацию броска, ждем пока она проиграет, и сразу удаляем сообщение
-  dice_msg = await callback.message.answer_dice(emoji="🎲")
-  await asyncio.sleep(3)
-  await dice_msg.delete()
-
+  # Инициализируем новую игру: 5 случайных кубиков, 2 переброса, ничего не зафиксировано
   user_games[callback.from_user.id] = {
       "dice": [random.randint(1, 6) for _ in range(5)],
       "rolls_left": 2,
@@ -241,6 +239,7 @@ async def process_lock(callback: types.CallbackQuery):
   idx = int(callback.data.split("_")[1])
   game = user_games[user_id]
 
+  # Переключаем статус фиксации кубика
   game["locked"][idx] = not game["locked"][idx]
   await show_desk(callback.message, user_id)
   await callback.answer()
@@ -254,12 +253,7 @@ async def process_reroll(callback: types.CallbackQuery):
   if game["rolls_left"] > 0:
     game["rolls_left"] -= 1
 
-    # Запускаем анимацию переброса, ждем и удаляем сообщение с кубиком
-    dice_msg = await callback.message.answer_dice(emoji="🎲")
-    await asyncio.sleep(3)
-    await dice_msg.delete()
-
-    # Меняем значения только для незафиксированных кубиков
+    # Меняем значения ТОЛЬКО для тех кубиков, которые НЕ зафиксированы
     for i in range(5):
       if not game["locked"][i]:
         game["dice"][i] = random.randint(1, 6)
