@@ -6,13 +6,14 @@ from aiogram.filters import Command
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     WebAppInfo,
 )
 
 # Твой токен бота
 TOKEN = "7734913058:AAFWPIZl-cHsysCifXJsHj23oZD8QcAztvE"
 
-# Ссылка на твое веб-приложение (3D Фэнтези арена на Bothost)
+# Твой адрес приложения на Bothost
 WEB_APP_URL = "https://dice-poker-bot.bothost.ru"
 
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +21,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
-# Инициализация базы данных для рекордов
+# Инициализация базы данных
 def init_db():
   conn = sqlite3.connect("database.db")
   cursor = conn.cursor()
@@ -37,14 +38,19 @@ def init_db():
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
+  # Устанавливаем кнопку «Меню» слева внизу для этого пользователя
+  try:
+    await bot.set_chat_menu_button(
+        chat_id=message.from_user.id,
+        menu_button=MenuButtonWebApp(
+            text="🎮 Играть", web_app=WebAppInfo(url=WEB_APP_URL)
+        ),
+    )
+  except Exception as e:
+    logging.error(f"Не удалось установить кнопку меню: {e}")
+
   kb = InlineKeyboardMarkup(
       inline_keyboard=[
-          [
-              InlineKeyboardButton(
-                  text="🎲 Играть в 3D Покер (Лобби)",
-                  web_app=WebAppInfo(url=WEB_APP_URL),
-              )
-          ],
           [
               InlineKeyboardButton(
                   text="🏆 Таблица лидеров", callback_data="show_top"
@@ -57,9 +63,9 @@ async def cmd_start(message: types.Message):
   )
 
   text = (
-      "Привет! Добро пожаловать в мультиплеерный **3D Покер на костях** 🎲✨\n\n"
-      "Нажми кнопку ниже, чтобы открыть трехмерную игровую комнату на 2–4"
-      " человека!"
+      "Привет! Добро пожаловать в мультиплеерный **Фэнтези 3D Покер на"
+      " костях** 🎲✨\n\n🔮 Нажми кнопку **«🎮 Играть»** в левом нижнем углу"
+      " экрана, чтобы открыть магическую арену!"
   )
   await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 
@@ -67,11 +73,9 @@ async def cmd_start(message: types.Message):
 @dp.callback_query(F.data == "show_rules")
 async def show_rules(callback: types.CallbackQuery):
   rules_text = (
-      "📖 **Правила 3D Покера на костях**:\n\n"
-      "1. Зайди в 3D-комнату (от 2 до 4 игроков).\n"
-      "2. Бросай кубики в реальном времени с крутой 3D-физикой.\n"
-      "3. Собирай комбинации (Покер, Каре, Стрит, Фулл-Хаус) и побеждай"
-      " соперников!"
+      "📖 **Правила игры**:\n\n1. Нажми кнопку **«🎮 Играть»** слева внизу."
+      "\n2. Зайди в 3D-комнату.\n3. Бросай рунические кубики, собирай"
+      " комбинации и побеждай!"
   )
   kb = InlineKeyboardMarkup(
       inline_keyboard=[[
@@ -96,7 +100,7 @@ async def show_top(callback: types.CallbackQuery):
 
   if not rows:
     top_text = (
-        "🏆 **Таблица лидеров**\n\nПока пусто. Стань первым чемпионом в 3D!"
+        "🏆 **Таблица лидеров**\n\nПока пусто. Стань первым чемпионом!"
     )
   else:
     top_text = "🏆 **Топ-10 игроков:**\n\n"
@@ -120,12 +124,6 @@ async def back_home(callback: types.CallbackQuery):
       inline_keyboard=[
           [
               InlineKeyboardButton(
-                  text="🎲 Играть в 3D Покер (Лобби)",
-                  web_app=WebAppInfo(url=WEB_APP_URL),
-              )
-          ],
-          [
-              InlineKeyboardButton(
                   text="🏆 Таблица лидеров", callback_data="show_top"
               ),
               InlineKeyboardButton(
@@ -135,9 +133,9 @@ async def back_home(callback: types.CallbackQuery):
       ]
   )
   text = (
-      "Привет! Добро пожаловать в мультиплеерный **3D Покер на костях** 🎲✨\n\n"
-      "Нажми кнопку ниже, чтобы открыть трехмерную игровую комнату на 2–4"
-      " человека!"
+      "Привет! Добро пожаловать в мультиплеерный **Фэнтези 3D Покер на"
+      " костях** 🎲✨\n\n🔮 Нажми кнопку **«🎮 Играть»** в левом нижнем углу"
+      " экрана, чтобы открыть магическую арену!"
   )
   await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
   await callback.answer()
@@ -145,22 +143,7 @@ async def back_home(callback: types.CallbackQuery):
 
 async def main():
   init_db()
-  # Запускаем локальный HTTP-сервер для Bothost, чтобы отдавать index.html
-  from aiohttp import web
-
-  async def handle(request):
-    return web.FileResponse("index.html")
-
-  app = web.Application()
-  app.router.add_get("/", handle)
-
-  runner = web.AppRunner(app)
-  await runner.setup()
-  site = web.TCPSite(runner, "0.0.0.0", 3000)
-  await site.start()
-  logging.info("HTTP сервер с 3D ареной запущен на порту 3000")
-
-  # Запуск бота
+  logging.info("Бот запущен с кнопкой Меню")
   await dp.start_polling(bot)
 
 
