@@ -2,11 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Фэнтези Покер на Костях</title>
-    <!-- Подключаем Telegram Web App скрипт -->
+    <!-- Подключаем Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем 3D библиотеку Three.js -->
+    <!-- Подключаем Three.js через надежный CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
@@ -16,18 +16,20 @@
             color: #fffffe;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            width: 100vw;
+            height: 100vh;
             user-select: none;
         }
         #canvas-container {
             width: 100vw;
-            height: 50vh;
+            height: 55vh;
             display: block;
         }
         .ui-container {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 50vh;
+            height: 45vh;
             background: linear-gradient(to top, #1b1a2e, #0f0e17);
             border-top: 2px solid #ff8906;
             border-top-left-radius: 20px;
@@ -38,21 +40,22 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-around;
-            box-shadow: 0 -10px 30px rgba(255, 137, 6, 0.2);
+            box-shadow: 0 -10px 30px rgba(255, 137, 6, 0.3);
         }
         h1 {
             margin: 0;
-            font-size: 22px;
+            font-size: 20px;
             color: #ff8906;
             text-shadow: 0 0 10px rgba(255, 137, 6, 0.5);
             letter-spacing: 1px;
+            text-align: center;
         }
         .lobby-box {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
-            max-width: 320px;
+            max-width: 300px;
         }
         .btn {
             background: #ff8906;
@@ -72,7 +75,7 @@
             background: #f25f4c;
         }
         .status-text {
-            font-size: 14px;
+            font-size: 13px;
             color: #a7a9be;
             text-align: center;
         }
@@ -80,17 +83,17 @@
 </head>
 <body>
 
-    <!-- 3D Сцена для магических кубиков -->
+    <!-- 3D Арена -->
     <div id="canvas-container"></div>
 
-    <!-- Фэнтезийный интерфейс -->
+    <!-- Интерфейс -->
     <div class="ui-container">
         <h1>✨ Врата Судьбы (2-4 Игрока)</h1>
-        <div class="status-text" id="status">Выберите комнату для начала ритуала</div>
+        <div class="status-text" id="status">Магический портал готов. Выберите ритуал:</div>
         
-        <div class="lobby-box" id="menu-box">
+        <div class="lobby-box">
             <button class="btn" onclick="createRoom()">⚔️ Создать комнату</button>
-            <button class="btn" onclick="joinRoom()" style="background: #e53170; color: #fffffe;">🛡️ Войти в битву</button> бросить кубики
+            <button class="btn" onclick="joinRoom()" style="background: #e53170; color: #fffffe;">🛡️ Войти в битву</button>
         </div>
     </div>
 
@@ -98,65 +101,72 @@
         // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
 
-        // Настройка 3D мира через Three.js (Фэнтезийный стол)
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0f0e17);
+        // Проверяем, загрузился ли Three.js
+        if (typeof THREE === 'undefined') {
+            document.getElementById('status').innerText = "Ошибка загрузки 3D мира. Проверьте интернет.";
+        } else {
+            // Настройка 3D сцены
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f0e17);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight * 0.5), 0.1, 1000);
-        camera.position.set(0, 7, 7);
-        camera.lookAt(0, 0, 0);
+            const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.55), 0.1, 1000);
+            camera.position.set(0, 5, 6);
+            camera.lookAt(0, 0, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
-        container.appendChild(renderer.domElement);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight * 0.55);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
 
-        // Магическое освещение
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
+            // Освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
 
-        const pointLight = new THREE.PointLight(0xff8906, 2, 50);
-        pointLight.position.set(0, 5, 2);
-        scene.add(pointLight);
+            const pointLight = new THREE.PointLight(0xff8906, 3, 50);
+            pointLight.position.set(0, 4, 2);
+            scene.add(pointLight);
 
-        // Создаем фэнтезийный кристалл-кубик для примера
-        const geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-        const material = new THREE.MeshStandardMaterial({ 
-            color: 0x3a86ff, 
-            roughness: 0.2, 
-            metalness: 0.8,
-            emissive: 0x1d3557
-        });
-        const crystalDice = new THREE.Mesh(geometry, material);
-        scene.add(crystalDice);
+            // Магический кристалл-кубик
+            const geometry = new THREE.BoxGeometry(1.3, 1.3, 1.3);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0x3a86ff, 
+                roughness: 0.2, 
+                metalness: 0.8,
+                emissive: 0x1d3557,
+                emissiveIntensity: 0.4
+            });
+            const crystalDice = new THREE.Mesh(geometry, material);
+            scene.add(crystalDice);
 
-        // Анимация вращения кристалла
-        function animate() {
-            requestAnimationFrame(animate);
-            crystalDice.rotation.x += 0.01;
-            crystalDice.rotation.y += 0.015;
-            renderer.render(scene, camera);
+            // Анимация вращения
+            function animate() {
+                requestAnimationFrame(animate);
+                crystalDice.rotation.x += 0.01;
+                crystalDice.rotation.y += 0.015;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Реакция на изменение размера экрана телефона
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / (window.innerHeight * 0.55);
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight * 0.55);
+            });
         }
-        animate();
 
-        // Заглушки для кнопок лобби
         function createRoom() {
-            document.getElementById('status').innerText = "Ожидание соратников в фэнтези-лобби...";
-            tg.HapticFeedback.impactOccurred('medium');
+            document.getElementById('status').innerText = "Создание магической комнаты...";
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
 
         function joinRoom() {
-            document.getElementById('status').innerText = "Поиск активных магических ритуалов...";
-            tg.HapticFeedback.impactOccurred('medium');
+            document.getElementById('status').innerText = "Поиск открытых ритуалов...";
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
-
-        // Подстраиваемся под размер экрана смартфона
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / (window.innerHeight * 0.5);
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
-        });
     </script>
 </body>
 </html>
