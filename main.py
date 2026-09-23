@@ -12,12 +12,15 @@ from aiogram.types import (
 # Твой токен бота
 TOKEN = "7734913058:AAFWPIZl-cHsysCifXJsHj23oZD8QcAztvE"
 
+# Ссылка на твое веб-приложение (3D Фэнтези арена на Bothost)
+WEB_APP_URL = "https://dice-poker-bot.bothost.ru"
+
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
-# Инициализация базы данных для рекордов и комнат
+# Инициализация базы данных для рекордов
 def init_db():
   conn = sqlite3.connect("database.db")
   cursor = conn.cursor()
@@ -34,15 +37,12 @@ def init_db():
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-  # Ссылка на наше веб-приложение (пока поставим заглушку, позже заменим на реальный адрес с Bothost)
-  web_app_url = "https://example.com"
-
   kb = InlineKeyboardMarkup(
       inline_keyboard=[
           [
               InlineKeyboardButton(
                   text="🎲 Играть в 3D Покер (Лобби)",
-                  web_app=WebAppInfo(url=web_app_url),
+                  web_app=WebAppInfo(url=WEB_APP_URL),
               )
           ],
           [
@@ -116,13 +116,12 @@ async def show_top(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "back_home")
 async def back_home(callback: types.CallbackQuery):
-  web_app_url = "https://example.com"
   kb = InlineKeyboardMarkup(
       inline_keyboard=[
           [
               InlineKeyboardButton(
                   text="🎲 Играть в 3D Покер (Лобби)",
-                  web_app=WebAppInfo(url=web_app_url),
+                  web_app=WebAppInfo(url=WEB_APP_URL),
               )
           ],
           [
@@ -146,6 +145,22 @@ async def back_home(callback: types.CallbackQuery):
 
 async def main():
   init_db()
+  # Запускаем локальный HTTP-сервер для Bothost, чтобы отдавать index.html
+  from aiohttp import web
+
+  async def handle(request):
+    return web.FileResponse("index.html")
+
+  app = web.Application()
+  app.router.add_get("/", handle)
+
+  runner = web.AppRunner(app)
+  await runner.setup()
+  site = web.TCPSite(runner, "0.0.0.0", 3000)
+  await site.start()
+  logging.info("HTTP сервер с 3D ареной запущен на порту 3000")
+
+  # Запуск бота
   await dp.start_polling(bot)
 
 
