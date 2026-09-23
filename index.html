@@ -6,7 +6,7 @@
     <title>Фэнтези Покер на Костях</title>
     <!-- Подключаем Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем Three.js через надежный CDN -->
+    <!-- Подключаем Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
@@ -22,14 +22,14 @@
         }
         #canvas-container {
             width: 100vw;
-            height: 55vh;
+            height: 50vh;
             display: block;
         }
         .ui-container {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 45vh;
+            height: 50vh;
             background: linear-gradient(to top, #1b1a2e, #0f0e17);
             border-top: 2px solid #ff8906;
             border-top-left-radius: 20px;
@@ -44,7 +44,7 @@
         }
         h1 {
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
             color: #ff8906;
             text-shadow: 0 0 10px rgba(255, 137, 6, 0.5);
             letter-spacing: 1px;
@@ -62,7 +62,7 @@
             color: #0f0e17;
             border: none;
             padding: 12px 20px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             border-radius: 12px;
             cursor: pointer;
@@ -78,6 +78,10 @@
             font-size: 13px;
             color: #a7a9be;
             text-align: center;
+            line-height: 1.4;
+        }
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -89,84 +93,126 @@
     <!-- Интерфейс -->
     <div class="ui-container">
         <h1>✨ Врата Судьбы (2-4 Игрока)</h1>
-        <div class="status-text" id="status">Магический портал готов. Выберите ритуал:</div>
         
-        <div class="lobby-box">
-            <button class="btn" onclick="createRoom()">⚔️ Создать комнату</button>
-            <button class="btn" onclick="joinRoom()" style="background: #e53170; color: #fffffe;">🛡️ Войти в битву</button>
+        <!-- Меню выбора -->
+        <div id="main-menu" class="lobby-box">
+            <div class="status-text" id="status">Создайте комнату или найдите бойцов</div>
+            <button class="btn" onclick="startLobby()">⚔️ Создать комнату (Лобби)</button>
+        </div>
+
+        <!-- Меню ожидания с таймером -->
+        <div id="waiting-menu" class="lobby-box hidden">
+            <div class="status-text" id="timer-status">Поиск игроков: 60 сек...</div>
+            <button class="btn" style="background: #e53170; color: #fffffe;" onclick="cancelLobby()">❌ Отменить</button>
+        </div>
+
+        <!-- Меню игры (когда комната заполнена или добавлены боты) -->
+        <div id="game-menu" class="lobby-box hidden">
+            <div class="status-text" id="game-status">Битва началась! Ваш ход.</div>
+            <button class="btn" onclick="rollDice()">🎲 Бросить руны</button>
         </div>
     </div>
 
     <script>
-        // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
 
-        // Проверяем, загрузился ли Three.js
-        if (typeof THREE === 'undefined') {
-            document.getElementById('status').innerText = "Ошибка загрузки 3D мира. Проверьте интернет.";
-        } else {
-            // Настройка 3D сцены
-            const container = document.getElementById('canvas-container');
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0f0e17);
+        let countdown = 60;
+        let timerInterval = null;
 
-            const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.55), 0.1, 1000);
-            camera.position.set(0, 5, 6);
-            camera.lookAt(0, 0, 0);
+        // Настройка 3D мира
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f0e17);
 
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(window.innerWidth, window.innerHeight * 0.55);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            container.appendChild(renderer.domElement);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.5), 0.1, 1000);
+        camera.position.set(0, 5, 6);
+        camera.lookAt(0, 0, 0);
 
-            // Освещение
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
 
-            const pointLight = new THREE.PointLight(0xff8906, 3, 50);
-            pointLight.position.set(0, 4, 2);
-            scene.add(pointLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
 
-            // Магический кристалл-кубик
-            const geometry = new THREE.BoxGeometry(1.3, 1.3, 1.3);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0x3a86ff, 
-                roughness: 0.2, 
-                metalness: 0.8,
-                emissive: 0x1d3557,
-                emissiveIntensity: 0.4
-            });
-            const crystalDice = new THREE.Mesh(geometry, material);
-            scene.add(crystalDice);
+        const pointLight = new THREE.PointLight(0xff8906, 3, 50);
+        pointLight.position.set(0, 4, 2);
+        scene.add(pointLight);
 
-            // Анимация вращения
-            function animate() {
-                requestAnimationFrame(animate);
-                crystalDice.rotation.x += 0.01;
-                crystalDice.rotation.y += 0.015;
-                renderer.render(scene, camera);
-            }
-            animate();
+        // Магический куб
+        const geometry = new THREE.BoxGeometry(1.3, 1.3, 1.3);
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x3a86ff, 
+            roughness: 0.2, 
+            metalness: 0.8,
+            emissive: 0x1d3557,
+            emissiveIntensity: 0.4
+        });
+        const crystalDice = new THREE.Mesh(geometry, material);
+        scene.add(crystalDice);
 
-            // Реакция на изменение размера экрана телефона
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / (window.innerHeight * 0.55);
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight * 0.55);
-            });
+        function animate() {
+            requestAnimationFrame(animate);
+            crystalDice.rotation.x += 0.01;
+            crystalDice.rotation.y += 0.015;
+            renderer.render(scene, camera);
         }
+        animate();
 
-        function createRoom() {
-            document.getElementById('status').innerText = "Создание магической комнаты...";
+        // Логика лобби и таймера
+        function startLobby() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('waiting-menu').classList.remove('hidden');
+            
+            countdown = 60;
+            document.getElementById('timer-status').innerText = `⏳ Ожидание игроков: ${countdown} сек...\n(Авто-добор ботов через 1 мин)`;
+
+            timerInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    document.getElementById('timer-status').innerText = `⏳ Ожидание игроков: ${countdown} сек...\n(Авто-добор ботов)`;
+                } else {
+                    clearInterval(timerInterval);
+                    fillWithBots();
+                }
+            }, 1000);
         }
 
-        function joinRoom() {
-            document.getElementById('status').innerText = "Поиск открытых ритуалов...";
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        function cancelLobby() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            clearInterval(timerInterval);
+            document.getElementById('waiting-menu').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('status').innerText = "Создайте комнату или найдите бойцов";
         }
+
+        function fillWithBots() {
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            document.getElementById('waiting-menu').classList.add('hidden');
+            document.getElementById('game-menu').classList.remove('hidden');
+            
+            document.getElementById('game-status').innerText = "👥 Живые игроки не найдены.\nК ритуалу присоединились: Маг Теней и Страж Рун!";
+        }
+
+        function rollDice() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+            // Эффект быстрого вращения кубика при броске
+            crystalDice.rotation.x += Math.random() * 5;
+            crystalDice.rotation.y += Math.random() * 5;
+            document.getElementById('game-status').innerText = "🎲 Руны брошены! Выпала комбинация: 4, 4, 4, 2, 6 (Тройка)";
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / (window.innerHeight * 0.5);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
+        });
     </script>
 </body>
 </html>
