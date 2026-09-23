@@ -13,15 +13,15 @@ from aiogram.types import (
 # Твой токен бота
 TOKEN = "7734913058:AAFWPIZl-cHsysCifXJsHj23oZD8QcAztvE"
 
-# Твой адрес приложения на Bothost
-WEB_APP_URL = "https://dice-poker-bot.bothost.ru"
+# Ссылка на твое 3D мини-приложение на GitHub Pages
+WEB_APP_URL = "https://deadmops95-lgtm.github.io/Kosti/"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
-# Инициализация базы данных
+# Инициализация базы данных SQLite для сохранения рекордов
 def init_db():
   conn = sqlite3.connect("database.db")
   cursor = conn.cursor()
@@ -38,7 +38,7 @@ def init_db():
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-  # Устанавливаем кнопку «Меню» слева внизу для этого пользователя
+  # Устанавливаем кнопку «Меню» (слева внизу возле ввода текста)
   try:
     await bot.set_chat_menu_button(
         chat_id=message.from_user.id,
@@ -143,7 +143,7 @@ async def back_home(callback: types.CallbackQuery):
 
 async def main():
   init_db()
-  logging.info("Бот запущен с кнопкой Меню")
+  logging.info("Бот успешно запущен!")
   await dp.start_polling(bot)
 
 
