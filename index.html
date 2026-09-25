@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Фэнтези Покер на Костях</title>
-    <!-- Подключаем Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
@@ -22,51 +20,75 @@
         }
         #canvas-container {
             width: 100vw;
-            height: 50vh;
+            height: 45vh;
             display: block;
         }
         .ui-container {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 50vh;
+            height: 55vh;
             background: linear-gradient(to top, #1b1a2e, #0f0e17);
             border-top: 2px solid #ff8906;
             border-top-left-radius: 20px;
             border-top-right-radius: 20px;
-            padding: 20px;
+            padding: 15px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-around;
+            justify-content: space-between;
             box-shadow: 0 -10px 30px rgba(255, 137, 6, 0.3);
         }
         h1 {
-            margin: 0;
-            font-size: 18px;
+            margin: 0 0 5px 0;
+            font-size: 16px;
             color: #ff8906;
             text-shadow: 0 0 10px rgba(255, 137, 6, 0.5);
-            letter-spacing: 1px;
             text-align: center;
+        }
+        .dice-row {
+            display: flex;
+            gap: 8px;
+            margin: 5px 0;
+        }
+        .dice-slot {
+            width: 45px;
+            height: 45px;
+            background: #2cb67d;
+            border: 2px solid #7f5af0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fffffe;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        .dice-slot.locked {
+            background: #e53170;
+            border-color: #ff8906;
+            transform: scale(0.95);
         }
         .lobby-box {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             width: 100%;
-            max-width: 300px;
+            max-width: 320px;
         }
         .btn {
             background: #ff8906;
             color: #0f0e17;
             border: none;
-            padding: 12px 20px;
-            font-size: 15px;
+            padding: 10px 15px;
+            font-size: 14px;
             font-weight: bold;
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s ease;
             box-shadow: 0 4px 15px rgba(255, 137, 6, 0.4);
             text-align: center;
         }
@@ -74,11 +96,17 @@
             transform: scale(0.95);
             background: #f25f4c;
         }
+        .btn:disabled {
+            background: #414047;
+            color: #72727e;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
         .status-text {
-            font-size: 13px;
+            font-size: 12px;
             color: #a7a9be;
             text-align: center;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         .hidden {
             display: none !important;
@@ -87,29 +115,38 @@
 </head>
 <body>
 
-    <!-- 3D Арена -->
     <div id="canvas-container"></div>
 
-    <!-- Интерфейс -->
     <div class="ui-container">
-        <h1>✨ Врата Судьбы (2-4 Игрока)</h1>
+        <h1>✨ Фэнтези Покер на Костях</h1>
         
-        <!-- Меню выбора -->
+        <!-- Главное меню -->
         <div id="main-menu" class="lobby-box">
-            <div class="status-text" id="status">Создайте комнату или найдите бойцов</div>
-            <button class="btn" onclick="startLobby()">⚔️ Создать комнату (Лобби)</button>
+            <div class="status-text" id="status">Создайте комнату для начала ритуала</div>
+            <button class="btn" onclick="startLobby()">⚔️ Создать комнату (найти бойцов)</button>
         </div>
 
-        <!-- Меню ожидания с таймером -->
+        <!-- Меню ожидания -->
         <div id="waiting-menu" class="lobby-box hidden">
-            <div class="status-text" id="timer-status">Поиск игроков: 60 сек...</div>
+            <div class="status-text" id="timer-status">Поиск игроков: 10 сек...</div>
             <button class="btn" style="background: #e53170; color: #fffffe;" onclick="cancelLobby()">❌ Отменить</button>
         </div>
 
-        <!-- Меню игры (когда комната заполнена или добавлены боты) -->
+        <!-- Игровой процесс -->
         <div id="game-menu" class="lobby-box hidden">
-            <div class="status-text" id="game-status">Битва началась! Ваш ход.</div>
-            <button class="btn" onclick="rollDice()">🎲 Бросить руны</button>
+            <div class="status-text" id="game-info">Ваш ход! Попыток осталось: 3</div>
+            
+            <!-- 5 кубиков -->
+            <div class="dice-row" id="dice-container">
+                <div class="dice-slot" onclick="toggleLock(0)" id="dice-0">?</div>
+                <div class="dice-slot" onclick="toggleLock(1)" id="dice-1">?</div>
+                <div class="dice-slot" onclick="toggleLock(2)" id="dice-2">?</div>
+                <div class="dice-slot" onclick="toggleLock(3)" id="dice-3">?</div>
+                <div class="dice-slot" onclick="toggleLock(4)" id="dice-4">?</div>
+            </div>
+
+            <button class="btn" id="roll-btn" onclick="makeRoll()">🎲 Бросить руны</button>
+            <button class="btn" id="finish-btn" onclick="finishTurn()" style="background: #7f5af0; color: #fffffe;" disabled>💾 Завершить ход</button>
         </div>
     </div>
 
@@ -118,69 +155,76 @@
         tg.expand();
         tg.ready();
 
-        let countdown = 10; // Для быстрого теста поставим 10 секунд (потом можно вернуть 60)
+        let countdown = 10;
         let timerInterval = null;
 
-        // Настройка 3D мира
+        // Состояние игры
+        let diceValues = [1, 1, 1, 1, 1];
+        let diceLocked = [false, false, false, false, false];
+        let rollsLeft = 3;
+        let gameActive = false;
+
+        // 3D Сцена
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0f0e17);
 
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.5), 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.45), 0.1, 1000);
         camera.position.set(0, 5, 6);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
+        renderer.setSize(window.innerWidth, window.innerHeight * 0.45);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambientLight);
-
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const pointLight = new THREE.PointLight(0xff8906, 3, 50);
         pointLight.position.set(0, 4, 2);
         scene.add(pointLight);
 
-        // Магический куб
-        const geometry = new THREE.BoxGeometry(1.3, 1.3, 1.3);
+        // Создаем 5 кубиков в 3D
+        const diceMeshes = [];
+        const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
         const material = new THREE.MeshStandardMaterial({ 
-            color: 0x3a86ff, 
-            roughness: 0.2, 
-            metalness: 0.8,
-            emissive: 0x1d3557,
-            emissiveIntensity: 0.4
+            color: 0x3a86ff, roughness: 0.2, metalness: 0.8, emissive: 0x1d3557, emissiveIntensity: 0.4
         });
-        const crystalDice = new THREE.Mesh(geometry, material);
-        scene.add(crystalDice);
+
+        for (let i = 0; i < 5; i++) {
+            let dice = new THREE.Mesh(geometry, material);
+            dice.position.set((i - 2) * 1.2, 0, 0);
+            scene.add(dice);
+            diceMeshes.push(dice);
+        }
 
         function animate() {
             requestAnimationFrame(animate);
-            crystalDice.rotation.x += 0.01;
-            crystalDice.rotation.y += 0.015;
+            diceMeshes.forEach((d, idx) => {
+                if (!diceLocked[idx]) {
+                    d.rotation.x += 0.01;
+                    d.rotation.y += 0.015;
+                }
+            });
             renderer.render(scene, camera);
         }
         animate();
 
-        // Логика лобби и таймера
+        // Лобби
         function startLobby() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('waiting-menu').classList.remove('hidden');
             
-            countdown = 10; // 10 секунд для быстрой проверки
-            document.getElementById('timer-status').innerText = `⏳ Ожидание игроков: ${countdown} сек...\n(Авто-добор ботов)`;
-
+            countdown = 10;
             if (timerInterval) clearInterval(timerInterval);
 
             timerInterval = setInterval(() => {
                 countdown--;
                 if (countdown > 0) {
-                    document.getElementById('timer-status').innerText = `⏳ Ожидание игроков: ${countdown} сек...\n(Авто-добор ботов)`;
+                    document.getElementById('timer-status').innerText = `⏳ Поиск игроков: ${countdown} сек...\n(Авто-добор ботов)`;
                 } else {
                     clearInterval(timerInterval);
-                    fillWithBots();
+                    startBattle();
                 }
             }, 1000);
         }
@@ -190,30 +234,106 @@
             clearInterval(timerInterval);
             document.getElementById('waiting-menu').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
-            document.getElementById('status').innerText = "Создайте комнату или найдите бойцов";
         }
 
-        function fillWithBots() {
+        function startBattle() {
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            
-            // Надежно скрываем меню ожидания и показываем игровое меню
             document.getElementById('waiting-menu').classList.add('hidden');
             document.getElementById('game-menu').classList.remove('hidden');
             
-            document.getElementById('game-status').innerText = "👥 Живые игроки не найдены.\nК ритуалу присоединились: Маг Теней и Страж Рун!";
+            gameActive = true;
+            resetTurn();
+            document.getElementById('game-info').innerText = "👥 Битва началась! Соперники: Маг Теней и Страж Рун.\nВаш ход. Попыток: 3";
         }
 
-        function rollDice() {
+        function resetTurn() {
+            rollsLeft = 3;
+            diceLocked = [false, false, false, false, false];
+            for(let i=0; i<5; i++) {
+                document.getElementById(`dice-${i}`).classList.remove('locked');
+                document.getElementById(`dice-${i}`).innerText = "?";
+            }
+            document.getElementById('roll-btn').disabled = false;
+            document.getElementById('finish-btn').disabled = true;
+        }
+
+        // Выбор/заморозка кубика
+        function toggleLock(index) {
+            if (!gameActive || rollsLeft === 3) return; // Нельзя фиксировать до первого броска
+            diceLocked[index] = !diceLocked[index];
+            let slot = document.getElementById(`dice-${index}`);
+            if (diceLocked[index]) {
+                slot.classList.add('locked');
+            } else {
+                slot.classList.remove('locked');
+            }
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        // Бросок рун
+        function makeRoll() {
+            if (!gameActive || rollsLeft <= 0) return;
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
-            crystalDice.rotation.x += Math.random() * 5;
-            crystalDice.rotation.y += Math.random() * 5;
-            document.getElementById('game-status').innerText = "🎲 Руны брошены! Выпала комбинация: 4, 4, 4, 2, 6 (Тройка)";
+
+            rollsLeft--;
+            for (let i = 0; i < 5; i++) {
+                if (!diceLocked[i]) {
+                    diceValues[i] = Math.floor(Math.random() * 6) + 1;
+                    document.getElementById(`dice-${i}`).innerText = diceValues[i];
+                    // Крутим 3D кубик при броске
+                    diceMeshes[i].rotation.x += Math.random() * 5;
+                    diceMeshes[i].rotation.y += Math.random() * 5;
+                }
+            }
+
+            document.getElementById('finish-btn').disabled = false;
+            if (rollsLeft > 0) {
+                document.getElementById('game-info').innerText = `Ход раунда. Осталось бросков: ${rollsLeft}\nНажмите на кубик, чтобы зафиксировать его.`;
+            } else {
+                document.getElementById('roll-btn').disabled = true;
+                document.getElementById('game-info').innerText = `Попытки исчерпаны! Зафиксируйте результат.`;
+            }
+        }
+
+        // Завершение хода и ход ботов
+        function finishTurn() {
+            if (!gameFileActive && !gameActive) return;
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+            document.getElementById('roll-btn').disabled = true;
+            document.getElementById('finish-btn').disabled = true;
+
+            // Подсчет очков игрока
+            let score = diceValues.reduce((a, b) => a + b, 0);
+            document.getElementById('game-info').innerText = `✨ Ваш результат сохранен: ${score} очков.\nХод переходит к соперникам...`;
+
+            setTimeout(() => {
+                let bot1Score = Math.floor(Math.random() * 15) + 10;
+                let bot2Score = Math.floor(Math.random() * 15) + 10;
+                
+                let resultText = `🏁 Итоги раунда:\n\n👤 Вы: ${score} очков\n🧙‍♂️ Маг Теней: ${bot1Score} очков\n🛡️ Страж Рун: ${bot2Score} очков\n\n`;
+                
+                if (score >= bot1Score && score >= bot2Score) {
+                    resultText += "🏆 Вы одержали победу в ритуале!";
+                } else {
+                    resultText += "💀 Победа осталась за соперниками. Попробуйте снова!";
+                }
+
+                document.getElementById('game-info').innerText = resultText;
+                
+                // Кнопка для нового раунда
+                setTimeout(() => {
+                    resetTurn();
+                    document.getElementById('game-info').innerText = "⚔️ Новий раунд! Ваш ход. Попыток: 3";
+                }, 4000);
+
+            }, 2000);
         }
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / (window.innerHeight * 0.5);
+            camera.aspect = window.innerWidth / (window.innerHeight * 0.45);
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
+            renderer.setSize(window.innerWidth, window.innerHeight * 0.45);
         });
     </script>
 </body>
