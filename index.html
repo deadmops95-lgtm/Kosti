@@ -20,19 +20,19 @@
         }
         #canvas-container {
             width: 100vw;
-            height: 45vh;
+            height: 42vh;
             display: block;
         }
         .ui-container {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 55vh;
+            height: 58vh;
             background: linear-gradient(to top, #1b1a2e, #0f0e17);
             border-top: 2px solid #ff8906;
             border-top-left-radius: 20px;
             border-top-right-radius: 20px;
-            padding: 15px;
+            padding: 12px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -41,8 +41,8 @@
             box-shadow: 0 -10px 30px rgba(255, 137, 6, 0.3);
         }
         h1 {
-            margin: 0 0 5px 0;
-            font-size: 16px;
+            margin: 0;
+            font-size: 15px;
             color: #ff8906;
             text-shadow: 0 0 10px rgba(255, 137, 6, 0.5);
             text-align: center;
@@ -50,18 +50,18 @@
         .dice-row {
             display: flex;
             gap: 8px;
-            margin: 5px 0;
+            margin: 4px 0;
         }
         .dice-slot {
-            width: 45px;
-            height: 45px;
+            width: 42px;
+            height: 42px;
             background: #2cb67d;
             border: 2px solid #7f5af0;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #fffffe;
             cursor: pointer;
@@ -76,7 +76,7 @@
         .lobby-box {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             width: 100%;
             max-width: 320px;
         }
@@ -84,8 +84,8 @@
             background: #ff8906;
             color: #0f0e17;
             border: none;
-            padding: 10px 15px;
-            font-size: 14px;
+            padding: 9px 14px;
+            font-size: 13px;
             font-weight: bold;
             border-radius: 10px;
             cursor: pointer;
@@ -103,10 +103,10 @@
             box-shadow: none;
         }
         .status-text {
-            font-size: 12px;
+            font-size: 11px;
             color: #a7a9be;
             text-align: center;
-            line-height: 1.3;
+            line-height: 1.25;
         }
         .hidden {
             display: none !important;
@@ -120,23 +120,19 @@
     <div class="ui-container">
         <h1>✨ Фэнтези Покер на Костях</h1>
         
-        <!-- Главное меню -->
         <div id="main-menu" class="lobby-box">
             <div class="status-text" id="status">Создайте комнату для начала ритуала</div>
             <button class="btn" onclick="startLobby()">⚔️ Создать комнату (найти бойцов)</button>
         </div>
 
-        <!-- Меню ожидания -->
         <div id="waiting-menu" class="lobby-box hidden">
             <div class="status-text" id="timer-status">Поиск игроков: 10 сек...</div>
             <button class="btn" style="background: #e53170; color: #fffffe;" onclick="cancelLobby()">❌ Отменить</button>
         </div>
 
-        <!-- Игровой процесс -->
         <div id="game-menu" class="lobby-box hidden">
             <div class="status-text" id="game-info">Ваш ход! Попыток осталось: 3</div>
             
-            <!-- 5 кубиков -->
             <div class="dice-row" id="dice-container">
                 <div class="dice-slot" onclick="toggleLock(0)" id="dice-0">?</div>
                 <div class="dice-slot" onclick="toggleLock(1)" id="dice-1">?</div>
@@ -146,7 +142,7 @@
             </div>
 
             <button class="btn" id="roll-btn" onclick="makeRoll()">🎲 Бросить руны</button>
-            <button class="btn" id="finish-btn" onclick="finishTurn()" style="background: #7f5af0; color: #fffffe;" disabled>💾 Завершить ход</button>
+            <button class="btn" id="finish-btn" onclick="finishTurn()" style="background: #7f5af0; color: #fffffe;" disabled>💾 Зафиксировать комбинацию</button>
         </div>
     </div>
 
@@ -158,23 +154,21 @@
         let countdown = 10;
         let timerInterval = null;
 
-        // Состояние игры
         let diceValues = [1, 1, 1, 1, 1];
         let diceLocked = [false, false, false, false, false];
         let rollsLeft = 3;
         let gameActive = false;
 
-        // 3D Сцена
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0f0e17);
 
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.45), 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.42), 0.1, 1000);
         camera.position.set(0, 5, 6);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight * 0.45);
+        renderer.setSize(window.innerWidth, window.innerHeight * 0.42);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
@@ -183,16 +177,15 @@
         pointLight.position.set(0, 4, 2);
         scene.add(pointLight);
 
-        // Создаем 5 кубиков в 3D
         const diceMeshes = [];
-        const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+        const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
         const material = new THREE.MeshStandardMaterial({ 
             color: 0x3a86ff, roughness: 0.2, metalness: 0.8, emissive: 0x1d3557, emissiveIntensity: 0.4
         });
 
         for (let i = 0; i < 5; i++) {
             let dice = new THREE.Mesh(geometry, material);
-            dice.position.set((i - 2) * 1.2, 0, 0);
+            dice.position.set((i - 2) * 1.1, 0, 0);
             scene.add(dice);
             diceMeshes.push(dice);
         }
@@ -209,7 +202,6 @@
         }
         animate();
 
-        // Лобби
         function startLobby() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             document.getElementById('main-menu').classList.add('hidden');
@@ -257,7 +249,6 @@
             document.getElementById('finish-btn').disabled = true;
         }
 
-        // Выбор/заморозка кубика
         function toggleLock(index) {
             if (!gameActive || rollsLeft === 3) return; 
             diceLocked[index] = !diceLocked[index];
@@ -270,7 +261,6 @@
             if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         }
 
-        // Бросок рун
         function makeRoll() {
             if (!gameActive || rollsLeft <= 0) return;
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
@@ -287,14 +277,40 @@
 
             document.getElementById('finish-btn').disabled = false;
             if (rollsLeft > 0) {
-                document.getElementById('game-info').innerText = `Ход раунда. Осталось бросков: ${rollsLeft}\nНажмите на кубик, чтобы зафиксировать его.`;
+                document.getElementById('game-info').innerText = `Ход раунда. Осталось бросков: ${rollsLeft}\nЗаморозьте нужные кубики и бросайте снова.`;
             } else {
                 document.getElementById('roll-btn').disabled = true;
-                document.getElementById('game-info').innerText = `Попытки исчерпаны! Зафиксируйте результат.`;
+                document.getElementById('game-info').innerText = `Попытки исчерпаны! Фиксируйте комбинацию.`;
             }
         }
 
-        // Завершение хода и ход ботов
+        // Подсчет покерных комбинаций на костях
+        function calculatePokerScore(arr) {
+            const counts = {};
+            arr.forEach(val => counts[val] = (counts[val] || 0) + 1);
+            const values = Object.values(counts).sort((a,b) => b - a);
+            const uniqueVals = Object.keys(counts).map(Number).sort((a,b) => a - b);
+
+            // Покер (Ямз): 5 одинаковых (50 очков)
+            if (values[0] === 5) return { name: "Покер (5 одинаковых)", score: 50 };
+            // Каре: 4 одинаковых (40 очков)
+            if (values[0] === 4) return { name: "Каре (4 одинаковых)", score: 40 };
+            // Фулл-Хаус: 3 + 2 (30 очков)
+            if (values[0] === 3 && values[1] === 2) return { name: "Фулл-Хаус", score: 30 };
+            // Большой стрит: 1,2,3,4,5 или 2,3,4,5,6 (25 очков)
+            if (uniqueVals.length === 5 && (uniqueVals[4] - uniqueVals[0] === 4)) return { name: "Стрит (порядковый)", score: 25 };
+            // Тройка: 3 одинаковых (20 очков)
+            if (values[0] === 3) return { name: "Тройка", score: 20 };
+            // Две пары (15 очков)
+            if (values[0] === 2 && values[1] === 2) return { name: "Две пары", score: 15 };
+            // Одна пара (10 очков)
+            if (values[0] === 2) return { name: "Пара", score: 10 };
+
+            // Шанс (просто сумма)
+            let sum = arr.reduce((a, b) => a + b, 0);
+            return { name: "Старшая карта (Шанс)", score: sum };
+        }
+
         function finishTurn() {
             if (!gameActive) return;
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
@@ -302,19 +318,31 @@
             document.getElementById('roll-btn').disabled = true;
             document.getElementById('finish-btn').disabled = true;
 
-            let score = diceValues.reduce((a, b) => a + b, 0);
-            document.getElementById('game-info').innerText = `✨ Ваш результат сохранен: ${score} очков.\nХод переходит к соперникам...`;
+            let combo = calculatePokerScore(diceValues);
+            let score = combo.score;
+
+            document.getElementById('game-info').innerText = `✨ Комбинация: ${combo.name} (+${score} очков).\nХод соперников...`;
+
+            // Отправляем очки боту для записи в базу данных
+            try {
+                let userId = tg.initDataUnsafe?.user?.id || 12345;
+                let userName = tg.initDataUnsafe?.user?.first_name || "Игрок";
+                fetch(`https://dice-poker-bot.bothost.ru/save_score?user_id=${userId}&name=${encodeURIComponent(userName)}&score=${score}`)
+                    .catch(e => console.log("Sync error:", e));
+            } catch(err) {
+                console.log(err);
+            }
 
             setTimeout(() => {
-                let bot1Score = Math.floor(Math.random() * 15) + 10;
-                let bot2Score = Math.floor(Math.random() * 15) + 10;
+                let bot1Score = Math.floor(Math.random() * 35) + 15;
+                let bot2Score = Math.floor(Math.random() * 35) + 15;
                 
-                let resultText = `🏁 Итоги раунда:\n\n👤 Вы: ${score} очков\n🧙‍♂️ Маг Теней: ${bot1Score} очков\n🛡️ Страж Рун: ${bot2Score} очков\n\n`;
+                let resultText = `🏁 Итоги раунда:\n\n👤 Вы (${combo.name}): ${score} очков\n🧙‍♂️ Маг Теней: ${bot1Score} очков\n🛡️ Страж Рун: ${bot2Score} очков\n\n`;
                 
                 if (score >= bot1Score && score >= bot2Score) {
-                    resultText += "🏆 Вы одержали победу в ритуале!";
+                    resultText += "🏆 Вы победили в покерном ритуале!";
                 } else {
-                    resultText += "💀 Победа осталась за соперниками. Попробуйте снова!";
+                    resultText += "💀 Победа за соперниками. Испытайте удачу снова!";
                 }
 
                 document.getElementById('game-info').innerText = resultText;
@@ -322,15 +350,15 @@
                 setTimeout(() => {
                     resetTurn();
                     document.getElementById('game-info').innerText = "⚔️ Новый раунд! Ваш ход. Попыток: 3";
-                }, 4000);
+                }, 5000);
 
             }, 2000);
         }
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / (window.innerHeight * 0.45);
+            camera.aspect = window.innerWidth / (window.innerHeight * 0.42);
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight * 0.45);
+            renderer.setSize(window.innerWidth, window.innerHeight * 0.42);
         });
     </script>
 </body>
