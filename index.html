@@ -118,7 +118,7 @@
         tg.expand();
         tg.ready();
 
-        let countdown = 60;
+        let countdown = 10; // Для быстрого теста поставим 10 секунд (потом можно вернуть 60)
         let timerInterval = null;
 
         // Настройка 3D мира
@@ -169,8 +169,10 @@
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('waiting-menu').classList.remove('hidden');
             
-            countdown = 60;
-            document.getElementById('timer-status').innerText = `⏳ Ожидание игроков: ${countdown} сек...\n(Авто-добор ботов через 1 мин)`;
+            countdown = 10; // 10 секунд для быстрой проверки
+            document.getElementById('timer-status').innerText = `⏳ Ожидание игроков: ${countdown} сек...\n(Авто-добор ботов)`;
+
+            if (timerInterval) clearInterval(timerInterval);
 
             timerInterval = setInterval(() => {
                 countdown--;
@@ -194,6 +196,7 @@
         function fillWithBots() {
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
             
+            // Надежно скрываем меню ожидания и показываем игровое меню
             document.getElementById('waiting-menu').classList.add('hidden');
             document.getElementById('game-menu').classList.remove('hidden');
             
@@ -202,7 +205,6 @@
 
         function rollDice() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
-            // Эффект быстрого вращения кубика при броске
             crystalDice.rotation.x += Math.random() * 5;
             crystalDice.rotation.y += Math.random() * 5;
             document.getElementById('game-status').innerText = "🎲 Руны брошены! Выпала комбинация: 4, 4, 4, 2, 6 (Тройка)";
