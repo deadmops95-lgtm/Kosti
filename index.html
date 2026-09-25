@@ -259,7 +259,7 @@
 
         // Выбор/заморозка кубика
         function toggleLock(index) {
-            if (!gameActive || rollsLeft === 3) return; // Нельзя фиксировать до первого броска
+            if (!gameActive || rollsLeft === 3) return; 
             diceLocked[index] = !diceLocked[index];
             let slot = document.getElementById(`dice-${index}`);
             if (diceLocked[index]) {
@@ -280,7 +280,6 @@
                 if (!diceLocked[i]) {
                     diceValues[i] = Math.floor(Math.random() * 6) + 1;
                     document.getElementById(`dice-${i}`).innerText = diceValues[i];
-                    // Крутим 3D кубик при броске
                     diceMeshes[i].rotation.x += Math.random() * 5;
                     diceMeshes[i].rotation.y += Math.random() * 5;
                 }
@@ -297,13 +296,12 @@
 
         // Завершение хода и ход ботов
         function finishTurn() {
-            if (!gameFileActive && !gameActive) return;
+            if (!gameActive) return;
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
             document.getElementById('roll-btn').disabled = true;
             document.getElementById('finish-btn').disabled = true;
 
-            // Подсчет очков игрока
             let score = diceValues.reduce((a, b) => a + b, 0);
             document.getElementById('game-info').innerText = `✨ Ваш результат сохранен: ${score} очков.\nХод переходит к соперникам...`;
 
@@ -321,10 +319,9 @@
 
                 document.getElementById('game-info').innerText = resultText;
                 
-                // Кнопка для нового раунда
                 setTimeout(() => {
                     resetTurn();
-                    document.getElementById('game-info').innerText = "⚔️ Новий раунд! Ваш ход. Попыток: 3";
+                    document.getElementById('game-info').innerText = "⚔️ Новый раунд! Ваш ход. Попыток: 3";
                 }, 4000);
 
             }, 2000);
